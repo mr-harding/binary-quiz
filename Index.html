@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Override Lock</title>
+    <!-- 1. Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 2. Load Inter and Roboto Mono fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- 3. Custom Styles for Animations -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Dark background for the whole page */
+            background-color: #111827; /* bg-gray-900 */
+        }
+        .font-mono {
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        /* --- Wrong Answer: Shake Animation --- */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-8px); }
+            20%, 40%, 60%, 80% { transform: translateX(8px); }
+        }
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        /* --- Wrong Answer: Explosion Particles --- */
+        .particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            opacity: 1;
+            /* We will set background-color and transform with JS */
+            transition: transform 1s ease-out, opacity 1s ease-out;
+        }
+
+        /* --- Correct Answer: Confetti Animation --- */
+        @keyframes fall {
+            0% {
+                transform: translateY(-10vh) rotateZ(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(110vh) rotateZ(720deg);
+                opacity: 0;
+            }
+        }
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            top: -10vh; /* Start off-screen */
+            opacity: 0;
+            /* We will set left, background-color, and animation-delay with JS */
+            animation: fall 5s linear infinite;
+        }
+
+        /* --- Typewriter Effect --- */
+        #message-text::after {
+            content: '█';
+            animation: blink 1s step-end infinite;
+        }
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+    </style>
+</head>
+<body class="text-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <!-- Screen Flash & Animation Containers (Overlays) -->
+    <div id="flash-overlay" class="fixed inset-0 bg-red-800 opacity-0 pointer-events-none z-10" style="transition: opacity 0.1s ease-out;"></div>
+    <div id="confetti-container" class="fixed inset-0 pointer-events-none z-20"></div>
+
+    <!-- MAIN CONTENT -->
+    <div class="w-full max-w-md">
+
+        <!-- ===== 1. PASSWORD SCREEN ===== -->
+        <div id="password-screen">
+            <!-- The card that will shake -->
+            <div class="bg-gray-800 border border-gray-700 rounded-lg p-8 shadow-2xl relative overflow-hidden">
+                <!-- This container holds the explosion particles -->
+                <div id="particle-container" class="absolute inset-0 pointer-events-none"></div>
+                
+                <!-- Lock Icon -->
+                <div class="w-20 h-20 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-6 relative">
+                    <!-- Heroicon: lock-closed -->
+                    <svg class="w-12 h-12 text-red-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                    </svg>
+                </div>
+                
+                <h1 class="text-3xl font-bold text-center font-mono text-red-400 mb-4">SYSTEM LOCKED</h1>
+                <p class="text-gray-300 text-center mb-6">Enter override password to proceed.</p>
+                
+                <div class="space-y-4">
+                    <input type="password" id="password-input" class="font-mono text-lg w-full bg-gray-700 border-2 border-gray-600 rounded-md py-3 px-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all" placeholder="PASSWORD...">
+                    <button id="submit-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold font-mono py-3 px-6 rounded-md transition duration-200 text-lg relative">
+                        [ ATTEMPT OVERRIDE ]
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 2. SUCCESS SCREEN ===== -->
+        <div id="success-screen" class="hidden text-center">
+            
+            <!-- Checkmark Icon -->
+            <div class="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <!-- Heroicon: lock-open -->
+                <svg class="w-12 h-12 text-gray-900" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.125V8.25a4.5 4.5 0 0 0-9 0v1.875M10.5 21a5.25 5.25 0 0 0 5.25-5.25V10.5a5.25 5.25 0 0 0-10.5 0v5.25a5.25 5.25 0 0 0 5.25 5.25Z" />
+                </svg>
+            </div>
+            
+            <h1 class="text-3xl font-bold font-mono text-green-400 mb-4">ACCESS GRANTED</h1>
+            <p class="text-gray-300 text-lg mb-8">System unlocked. Awaiting your command.</p>
+            
+            <!-- Button to reveal message -->
+            <button id="reveal-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold font-mono py-3 px-8 rounded-md transition duration-200 text-lg">
+                [ VIEW DIRECTIVE ]
+            </button>
+            
+            <!-- Message container (starts hidden) -->
+            <div id="message-container" class="hidden mt-8">
+                <div class="bg-gray-950 border-2 border-dashed border-green-700 rounded-md p-6 text-left">
+                    <h2 class="text-xl font-mono font-bold text-green-400 mb-4">[ TOP SECRET // EYES ONLY ]</h2>
+                    <!-- The typewriter effect will happen here -->
+                    <p id="message-text" class="text-green-400 font-mono text-lg whitespace-pre-wrap leading-relaxed"></p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- 4. JavaScript Logic -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // The correct password
+            const CORRECT_PASSWORD = "POTATO";
+
+            // --- Get all elements ---
+            const passwordScreen = document.getElementById('password-screen');
+            const successScreen = document.getElementById('success-screen');
+            
+            const passwordInput = document.getElementById('password-input');
+            const submitBtn = document.getElementById('submit-btn');
+            
+            const revealBtn = document.getElementById('reveal-btn');
+            const messageContainer = document.getElementById('message-container');
+            const messageTextElement = document.getElementById('message-text');
+            
+            const flashOverlay = document.getElementById('flash-overlay');
+            const particleContainer = document.getElementById('particle-container');
+            const confettiContainer = document.getElementById('confetti-container');
+
+            // --- Event Listeners ---
+            
+            // Handle submit button click
+            submitBtn.addEventListener('click', checkPassword);
+            
+            // Handle 'Enter' key press
+            passwordInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    checkPassword();
+                }
+            });
+
+            // Handle reveal message button click
+            revealBtn.addEventListener('click', showTopSecretMessage);
+
+            // --- Main Function ---
+            
+            function checkPassword() {
+                const inputVal = passwordInput.value.trim().toUpperCase();
+                
+                if (inputVal === CORRECT_PASSWORD) {
+                    handleCorrect();
+                } else {
+                    handleWrong();
+                }
+            }
+
+            // --- Wrong Answer Logic ---
+            
+            function handleWrong() {
+                // 1. Flash the screen red
+                flashOverlay.style.opacity = '0.5';
+                setTimeout(() => {
+                    flashOverlay.style.opacity = '0';
+                }, 100);
+
+                // 2. Shake the card
+                const card = passwordScreen.querySelector('.bg-gray-800');
+                card.classList.add('shake');
+                
+                // 3. Trigger particle explosion
+                createExplosion();
+
+                // 4. Add red border to input
+                passwordInput.classList.add('border-red-500', 'focus:ring-red-500');
+
+                // 5. Remove shake class after animation finishes
+                setTimeout(() => {
+                    card.classList.remove('shake');
+                }, 500);
+            }
+
+            function createExplosion() {
+                // Clear old particles
+                particleContainer.innerHTML = ''; 
+                
+                for (let i = 0; i < 30; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    
+                    // Particle colors (grays, reds, oranges)
+                    const colors = ['#f87171', '#fb923c', '#9ca3af', '#ef4444'];
+                    particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    
+                    // Random physics
+                    const x = (Math.random() - 0.5) * 600; // Horizontal spread
+                    const y = (Math.random() - 0.5) * 600; // Vertical spread
+                    const rot = Math.random() * 720; // Rotation
+                    
+                    // Apply the animation transform
+                    // We set initial state here, CSS transition will handle the animation
+                    particle.style.transform = `translate(${x}px, ${y}px) rotate(${rot}deg) scale(0)`;
+                    particle.style.opacity = '0';
+                    
+                    particleContainer.appendChild(particle);
+
+                    // Remove particle after animation
+                    setTimeout(() => {
+                        particle.remove();
+                    }, 1000);
+                }
+            }
+
+            // --- Correct Answer Logic ---
+
+            function handleCorrect() {
+                // 1. Hide password screen, show success screen
+                passwordScreen.classList.add('hidden');
+                successScreen.classList.remove('hidden');
+
+                // 2. Launch confetti
+                launchConfetti();
+            }
+
+            function launchConfetti() {
+                confettiContainer.innerHTML = ''; // Clear old confetti
+                const colors = ['#34d399', '#fde047', '#60a5fa', '#fb923c', '#f472b6'];
+
+                for (let i = 0; i < 100; i++) {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    
+                    confetti.style.left = Math.random() * 100 + 'vw';
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.animationDelay = Math.random() * 3 + 's';
+                    
+                    // Give some random horizontal size variation
+                    const size = Math.random() * 5 + 8;
+                    confetti.style.width = size + 'px';
+                    confetti.style.height = size + 'px';
+                    
+                    confettiContainer.appendChild(confetti);
+
+                    // Remove after animation (5s + 2s max delay)
+                    setTimeout(() => {
+                        confetti.remove();
+                    }, 7000);
+                }
+            }
+
+            // --- Top Secret Message Logic ---
+            
+            function showTopSecretMessage() {
+                // Hide the button
+                revealBtn.classList.add('hidden');
+                
+                // Show the message container
+                messageContainer.classList.remove('hidden');
+
+                // The message to be typed
+                const message = "OPERATION: REVERSE ENIGMA\n\n" +
+                                "TO: DIGITAL DETECTIVES\n" +
+                                "FROM: HQ\n\n" +
+                                "TASK: \n" +
+                                "EXCELLENT WORK, OPERATIVES.\n\n" +
+                                "YOUR FINAL DIRECTIVE IS A CHANCE TO PROVE YOURSELF.\n\n" +
+                                "CREATE YOUR OWN MULTI-STEP PROBLEM-SOLVING CHALLENGE FOR FUTURE RECRUITS. IT MUST TEST BINARY, ASCII, AND IMAGE REPRESENTATION.\n\n" +
+                                "OUR MISSION DEPENDS ON YOU. GOOD LUCK. \n\n" +
+                                "END OF LINE.";
+                
+                typeMessage(message);
+            }
+
+            function typeMessage(text) {
+                let i = 0;
+                messageTextElement.innerHTML = ''; // Clear text first
+
+                function type() {
+                    if (i < text.length) {
+                        messageTextElement.innerHTML += text.charAt(i);
+                        i++;
+                        setTimeout(type, 30); // Adjust speed of typing here
+                    } else {
+                        // Typing finished, remove the blinking cursor
+                        messageTextElement.classList.add('typing-done');
+                        messageTextElement.style.borderRight = 'none';
+                    }
+                }
+                
+                // Start typing
+                type();
+            }
+        });
+    </script>
+</body>
+</html>
+
